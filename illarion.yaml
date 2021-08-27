@@ -1,0 +1,806 @@
+openapi: 3.0.3
+info:
+  title: Illarion API
+  description: 'This is the [Illarion](https://illarion.org) API'
+  contact:
+    email: vilarion@illarion.org
+  license:
+    name: GPLv3
+    url: 'https://www.gnu.org/licenses/gpl-3.0.html'
+  version: 1.0.0
+servers:
+  - url: 'https://illarion.org/api'
+  - url: 'https://localhost/api'
+tags:
+  - name: server
+    description: Server operations
+  - name: account
+    description: Account operations
+  - name: character
+    description: Character operations
+paths:
+  /server:
+    get:
+      summary: List of servers.
+      description: >
+        Server discovery to be used to find information about existing servers.
+      operationId: serverList
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArrayOfServers'
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [server]
+  /account/check:
+    get:
+      summary: Check if account name and/or email are free to be used.
+      description: >
+        Check if an account name and/or email address are/is still free to be
+        used. While both fields are optional, at least one of the two has to be
+        set. The request is considered illegal in case no data is attached.
+      operationId: accountCheck
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        400:
+          description: Illegal request.
+        403:
+          description: Forbidden account data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [account]
+  /account:
+    post:
+      summary: Create a new account.
+      description: >-
+        Create a new account. This will create a new account if the supplied
+        values allow it.
+      operationId: accountCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAccount'
+        required: true
+      responses:
+        201:
+          description: Account created.
+        400:
+          description: Illegal account information.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [account]
+    get:
+      security:
+        - basicAuth: []
+      summary: Get account information and characters.
+      description: >-
+        Get information about the account. This function will also return
+        a existing characters on all servers. This function requires
+        authentication as it relies on the account information of the user that
+        is currently authenticated with the system.
+      operationId: accountInfo
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        401:
+          description: Unauthorized. 
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [account]
+    put:
+      security:
+        - basicAuth: []
+      summary: Update account.
+      description: >
+        Update the information of the authenticated account. Only values which
+        are part of the request data will be updated.
+      operationId: accountUpdate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+        required: true
+      responses:
+        204:
+          description: Account updated.
+        400:
+          description: Illegal information.
+        401:
+          description: Unauthorized.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [account]
+    delete:
+      security:
+        - basicAuth: []
+      summary: Delete account.
+      description: Remove the authenticated account.
+      operationId: accountDelete
+      responses:
+        200:
+          description: Account deleted.
+        401:
+          description: Unauthorized.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [account]
+  /character/options/{server}:
+    get:
+      security:
+        - basicAuth: []
+      summary: Character creation options for a given server.
+      operationId: characterOptions
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharacterOptions'
+        404:
+          description: Server not found.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+  /character/check/{server}:
+    get:
+      summary: Check if character name is available.
+      description: >
+        Check if a character name is available on a given server.
+      operationId: characterCheck
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        400:
+          description: Illegal request.
+        403:
+          description: Forbidden character name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+  /character:
+    post:
+      security:
+        - basicAuth: []
+      summary: Create a new character.
+      description: >
+        Create a new character. This will create a new character provided all
+        the values are valid and within legal ranges.
+      operationId: characterCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCharacter'
+        required: true
+      responses:
+        201:
+          description: Character created.
+        400:
+          description: Illegal character information.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+  /character/{server}/{character}:
+    get:
+      security:
+        - basicAuth: []
+      summary: Get information about a specific character.
+      description: >-
+        Get information about the character. This function requires
+        authentication as it relies on the account information of the user that
+        is currently authenticated with the system.
+      operationId: characterInfo
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: character
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+        401:
+          description: Unauthorized. 
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+    put:
+      security:
+        - basicAuth: []
+      summary: Update character.
+      description: >
+        Update the information of a character. Only values which
+        are part of the request data will be updated.
+      operationId: characterUpdate
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: character
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CharacterText'
+        required: true
+      responses:
+        204:
+          description: Character updated.
+        400:
+          description: Illegal information.
+        401:
+          description: Unauthorized.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+    delete:
+      security:
+        - basicAuth: []
+      summary: Delete character.
+      description: Remove a character on a given server.
+      operationId: characterDelete
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: character
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Character deleted.
+        401:
+          description: Unauthorized. 
+        404:
+          description: Character not found.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+  /character/image/{server}/{character}:
+    put:
+      security:
+        - basicAuth: []
+      summary: Upload character image.
+      description: >
+        Upload character image in PNG format.
+      operationId: characterImage
+      parameters:
+        - in: path
+          name: server
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: character
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          image/png:
+            schema:
+              $ref: '#/components/schemas/Image'
+        required: true
+      responses:
+        204:
+          description: Character updated.
+        400:
+          description: Illegal information.
+        401:
+          description: Unauthorized.
+        503:
+          $ref: '#/components/responses/NoDatabase'
+      tags: [character]
+components:
+  schemas:
+    ServerId:
+      type: string
+      description: Server ID.
+      maxLength: 30
+    ArrayOfServers:
+      type: array
+      items:
+        type: object
+        properties:
+          port:
+            type: integer
+            format: int32
+            description: Server port.
+          id:
+            $ref: '#/components/schemas/ServerId'
+          name:
+            type: string
+            description: Server name.
+            maxLength: 30
+        example:
+          port: 3008
+          id: illarionserver
+          name: Illarion Server
+    Range:
+      type: object
+      properties:
+        min:
+          type: integer
+          format: int32
+          description: Minimum.
+          minimum: 0
+        max:
+          type: integer
+          format: int32
+          description: Maximum.
+          minimum: 0
+    RGBAValue:
+      type: integer
+      format: int32
+      minimum: 0
+      maximum: 255
+    Colour:
+      type: object
+      properties:
+        red:
+          $ref: '#/components/schemas/RGBAValue'
+        green:
+          $ref: '#/components/schemas/RGBAValue'
+        blue:
+          $ref: '#/components/schemas/RGBAValue'
+        alpha:
+          $ref: '#/components/schemas/RGBAValue'
+      required: [red, green, blue, alpha]
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Item ID.
+        name:
+          type: string
+          description: Item name.
+          maxLength: 100
+        position:
+          description: Item position on the character.
+          type: integer
+          format: int32
+          minimum: 0
+        number:
+          description: The amount of items.
+          type: integer
+          format: int32
+          minimum: 1
+        quality:
+          description: Item quality
+          type: integer
+          format: int32
+          minimum: 0
+    CharacterOptions:
+      type: object
+      properties:
+        races:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int32
+                description: Race ID.
+              name:
+                type: string
+                description: Race name.
+                maxLength: 100
+              attributes:
+                type: object
+                properties:
+                  age:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid age range in years.
+                  weight:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid weight range in grams.
+                  height:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid height range in centimeters.
+                  agility:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the agility attribute.
+                  constitution:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the constitution attribute.
+                  dexterity:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the dexterity attribute.
+                  essence:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the essence attribute.
+                  intelligence:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the intelligence attribute.
+                  perception:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the perception attribute.
+                  strength:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the strength attribute.
+                  willpower:
+                    $ref: '#/components/schemas/Range'
+                    description: Valid range of the willpower attribute.
+                  totalAttributePoints:
+                    type: integer
+                    format: int32
+                    minimum: 0
+                    description: >
+                      Attributes (except age, weight and height) need to sum up
+                      to this value.
+              types:
+                description: Possible types of this race.
+                type: object
+                properties:
+                  id:
+                    description: Race type ID.
+                    type: integer
+                    format: int32
+                  hairs:
+                    description: Possible hair values.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          description: Hair ID.
+                          type: integer
+                          format: int32
+                        name:
+                          description: Hair name.
+                          type: string
+                          maxLength: 100
+                  beards:
+                    description: Possible beard values.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          description: Beard ID.
+                          type: integer
+                          format: int32
+                        name:
+                          description: Beard name.
+                          type: string
+                          maxLength: 100
+                  hairColours:
+                    description: Array of possible hair colours.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Colour'
+                  skinColours:
+                    description: Array of possible skin colours.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Colour'
+        starterSets:
+          description: Possible starter sets of skills and items.
+          type: array
+          items:
+            type: object
+            properties:
+              skills:
+                description: Skills associated with this starter set.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      description: Skill ID.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    name:
+                      description: Skill name.
+                      type: string
+                      maxLength: 100
+                    value:
+                      description: Skill value.
+                      type: integer
+                      format: int32
+                      minimum: 0
+              items:
+                description: Items in this starter set.
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+    NewAccount:
+      type: object
+      required: [name, password, email]
+      properties:
+        name:
+          type: string
+          description: Login name.
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          description: Password.
+          maxLength: 50
+        email:
+          type: string
+          description: Email.
+          maxLength: 50
+    Account:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          description: 'Account name.'
+        state:
+          type: integer
+          format: int32
+          description: >
+            Account state:
+              * `3` - active
+              * `8` - banned
+        maxChars:
+          type: integer
+          format: int32
+          description: >-
+            The maximum amount of characters the account is allowed to have.
+            This number only applies to characters on the main server
+            (illarionserver).
+        lang:
+          type: string
+          enum: [de, en]
+          description: >
+            Language:
+              * `de` - German
+              * `en` - English
+        servers:
+          type: array
+          description: 'Servers this account has characters on.'
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Server ID.
+              name:
+                type: string
+                description: Human-readable server name.
+              chars:
+                description: Characters on this server.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    character:
+                      $ref: '#/components/schemas/Character'
+                    status:
+                      type: integer
+                      format: int32
+                      description: >-
+                        Character Status:
+                          * `0` - playable
+                          * `30` - banned
+                          * `31` - temporarily banned
+                    lastSaveTime:
+                      type: string
+                      format: date-time
+                      description: Time when the character last logged out.
+                    onlineTime:
+                      type: integer
+                      format: int64
+                      minimum: 0
+                      description: >-
+                        Total time in seconds this character was online.
+        create:
+          type: array
+          description: Information for character creation.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Server Id.
+              name:
+                type: string
+                description: Human-readable server name.
+              route:
+                type: string
+                description: >-
+                  Route for creating a new character on this server.
+    AccountUpdate:
+      type: object
+      properties:
+        password:
+          type: string
+          format: password
+          description: Password.
+          maxLength: 50
+        email:
+          type: string
+          description: Email.
+          maxLength: 50
+    CheckResult:
+      type: array
+      items:
+        type: object
+        properties:
+          field:
+            description: Field that was checked.
+            type: string
+          value:
+            description: Value that was checked.
+            type: string
+          check:
+            description: >
+              Check result:
+                * `0` - OK
+                * `1` - Illegal character(s)
+                * `2` - Illegal format
+                * `3` - Already in use
+            type: integer
+            format: int32
+    CharacterText:
+      type: object
+      properties:
+        descriptionDe:
+          description: German character description
+          type: string
+          maxLength: 10000
+        descriptionEn:
+          description: English character description
+          type: string
+          maxLength: 10000
+        storyDe:
+          description: German character story
+          type: string
+          maxLength: 10000
+        storyEn:
+          description: English character story
+          type: string
+          maxLength: 10000
+    Character:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        race:
+          type: integer
+          format: int32
+        sex:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 1
+          description: >
+            Sex:
+              * `0` - male
+              * `1` - female
+        agility:
+          type: integer
+          format: int32
+        constitution:
+          type: integer
+          format: int32
+        dexterity:
+          type: integer
+          format: int32
+        essence:
+          type: integer
+          format: int32
+        intelligence:
+          type: integer
+          format: int32
+        perception:
+          type: integer
+          format: int32
+        strength:
+          type: integer
+          format: int32
+        willpower:
+          type: integer
+          format: int32
+        hair:
+          type: integer
+          format: int32
+        beard:
+          type: integer
+          format: int32
+        skinColor:
+          $ref: '#/components/schemas/Colour'
+        hairColor:
+          $ref: '#/components/schemas/Colour'
+        weight:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+        dateOfBirth:
+          type: integer
+          format: int32
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        text:
+          $ref: '#/components/schemas/CharacterText'
+    NewCharacter:
+      type: object
+      properties:
+        server:
+          $ref: '#/components/schemas/ServerId'
+        character:
+          $ref: '#/components/schemas/Character'
+        starterSet:
+          type: integer
+          format: int32
+    Image:
+      type: string
+      format: binary
+      maxLength: 300000
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  responses:
+    NoDatabase:
+      description: Database unavailable.
