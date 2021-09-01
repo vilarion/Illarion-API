@@ -216,6 +216,10 @@ paths:
           description: Character created.
         400:
           description: Illegal character information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
         503:
           $ref: '#/components/responses/NoDatabase'
       tags: [character]
