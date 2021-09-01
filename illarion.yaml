@@ -800,7 +800,7 @@ components:
     Image:
       type: string
       format: binary
-      maxLength: 300000
+      maxLength: 204800
   securitySchemes:
     basicAuth:
       type: http
